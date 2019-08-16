@@ -1,65 +1,85 @@
+# bunq2ynab (AWS Lambda)
 
-# Welcome to your CDK Python project!
+A tool to sync one or more [bunq](https://www.bunq.com/) accounts to [YNAB](https://www.youneedabudget.com/). It's build to run in AWS Lambda at near zero costs.
 
-You should explore the contents of this template. It demonstrates a CDK app with two instances of
-a stack (`HelloStack`) which also uses a user-defined construct (`HelloConstruct`).
+This project is a fork from [wesselt/bunq2ynab](https://github.com/wesselt/bunq2ynab).
 
-The `cdk.json` file tells the CDK Toolkit how to execute your app.
+## Changes in this fork:
+  * Improved logging.
+  * Single config location.
+    * Config can be stored in an AWS SSM Parameter (for use by AWS Lambda)
+    * Or a single `.json` file.
+  * AWS Lambda compatible
+  * AWS CDK (Python to deploy the app)
+  * Consolidated to a single main `.py` file to be executed by AWS Lambda. Added an environment variable for listing bunq and YNAB budgets.
+  * Added a commandline switch (`-l`) for listing bunq and YNAB budgets.
 
-This project is set up like a standard Python project.  The initialization process also creates
-a virtualenv within this project, stored under the .env directory.  To create the virtualenv 
-it assumes that there is a `python3` executable in your path with access to the `venv` package.
-If for any reason the automatic creation of the virtualenv fails, you can create the virtualenv
-manually once the init process completes.
+The `__main__` file for Lambda is `app.py`, I also included an `applocal.py` to run on your local machine. 
 
-To manually create a virtualenv on MacOS and Linux:
+## Building and deploying: 
 
-```
-$ python3 -m venv .env
-```
+To build and deploy this project yourself, you will need: 
 
-After the init process completes and the virtualenv is created, you can use the following
-step to activate your virtualenv.
+* [Serverless Application Model (SAM)](https://github.com/awslabs/serverless-application-model), you can find install instructions [here](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-cli-install.html) 
+* [AWS-CDK](https://github.com/aws/aws-cdk). You can install from NPM like this:
+  * `npm i -g aws-cdk`
 
-```
-$ source .env/bin/activate
-```
+## Building the app: 
 
-If you are a Windows platform, you would activate the virtualenv like this:
-
-```
-% .env\Scripts\activate.bat
-```
-
-Once the virtualenv is activated, you can install the required dependencies.
+Go into the project folder and run `sam build`. This will install the Python modules such as `requests`. I recommend using the `--use-container` command-line switch. This will require that you have Docker installed and running.
 
 ```
-$ pip install -r requirements.txt
+cd projectfolder/sam-app
+sam build --use-container
 ```
 
-At this point you can now synthesize the CloudFormation template for this code.
+## Deploying the app: 
 
 ```
-$ cdk synth
+cdk bootstrap
+cdk deploy
 ```
 
-You can now begin exploring the source code, contained in the hello directory.
-There is also a very trivial test included that can be run like this:
+This will create a `AWSLambdaBasicExecutionRole`, the Lambda itself, SSM Parameter (to store config) and a CloudWatch Events rule that runs the Lambda on a 15 min interval to sync from Bunq to Ynab. The `AWSLambdaBasicExecutionRole` will be granted `ssm:GetParameter` and `ssm:PutParameter` permissions to the created SSM Parameter to store and fetch the configuration. 
+
+
+## Getting started
+
+To get started you need a config with atleast the bunq `api_token` and the YNAB `accesstoken` populated. The other bunq and YNAB parameters will get populated on first run.
+
+* You can get the BUNQ in the BUNQ mobile app. Click your picture, then Security, API keys, then add a key using the plus on the top right. Choose to "Reveal" the API key and share it. **Don't share this API key with anyone!**
+* You can get the YNAB access token [here](https://app.youneedabudget.com/settings/developer).  
+
+The bunq2ynab section will hold the sync pairs. e.g. which bunq account to which YNAB account. If you don't know what they are you can run the Lambda in `LIST_MODE` by setting the environment variable to `1` **OR** run `applocal.py` with the `-l` commandline switch.
+
+Here is an example config file: 
 
 ```
-$ pytest
+{
+	"bunq": {
+		"api_token": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+		"priv_key": "",
+		"install_token": "",
+		"server_pub_key": "",
+		"session_token": ""
+	},
+	"bunq2ynab": [{
+			"bunq_user": "",
+			"bunq_acc": "",
+			"ynab_budget": "",
+			"ynab_acc": ""
+		},
+		{
+			"bunq_user": "",
+			"bunq_acc": "",
+			"ynab_budget": "",
+			"ynab_acc": ""
+		}
+	],
+	"ynab": {
+		"accesstoken": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+		"clientid": "",
+		"clientsecret": ""
+	}
+}
 ```
-
-To add additional dependencies, for example other CDK libraries, just add to
-your requirements.txt file and rerun the `pip install -r requirements.txt`
-command.
-
-# Useful commands
-
- * `cdk ls`          list all stacks in the app
- * `cdk synth`       emits the synthesized CloudFormation template
- * `cdk deploy`      deploy this stack to your default AWS account/region
- * `cdk diff`        compare deployed stack with current state
- * `cdk docs`        open CDK documentation
-
-Enjoy!
