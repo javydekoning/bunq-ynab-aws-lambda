@@ -5,8 +5,8 @@ def sync(config, b, y):
     for mapping in config.value['bunq2ynab']:
         bunq_user_name = mapping['bunq_user']
         bunq_account_name = mapping['bunq_acc']
-        ynab_budget_name = mapping['ynab_acc']
-        ynab_account_name = mapping['ynab_budget']
+        ynab_budget_name = mapping['ynab_budget']
+        ynab_account_name = mapping['ynab_acc']
         LOGGER.info('Trying to sync Bunq user: {0} account: {1} to Ynab budget: {2} and account {3}.'.format(
             bunq_user_name, bunq_account_name, ynab_budget_name, ynab_account_name
         ))
