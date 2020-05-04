@@ -1,85 +1,62 @@
-# bunq2ynab (AWS Lambda)
+# bunq2ynab for AWS Lambda
 
-A tool to sync one or more [bunq](https://www.bunq.com/) accounts to [YNAB](https://www.youneedabudget.com/). It's build to run in AWS Lambda at near zero costs.
+Forked from [wesselt/bunq2ynab](https://github.com/wesselt/bunq2ynab). Modified to run on AWS Lambda.
 
-This project is a fork from [wesselt/bunq2ynab](https://github.com/wesselt/bunq2ynab).
+## Deploying
 
-## Changes in this fork:
-  * Improved logging.
-  * Single config location.
-    * Config can be stored in an AWS SSM Parameter (for use by AWS Lambda)
-    * Or a single `.json` file.
-  * AWS Lambda compatible
-  * AWS CDK (Python to deploy the app)
-  * Consolidated to a single main `.py` file to be executed by AWS Lambda. Added an environment variable for listing bunq and YNAB budgets.
-  * Added a commandline switch (`-l`) for listing bunq and YNAB budgets.
-
-The `__main__` file for Lambda is `app.py`, I also included an `applocal.py` to run on your local machine. 
-
-## Building and deploying: 
-
-To build and deploy this project yourself, you will need: 
-
-* [Serverless Application Model (SAM)](https://github.com/awslabs/serverless-application-model), you can find install instructions [here](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-cli-install.html) 
-* [AWS-CDK](https://github.com/aws/aws-cdk). You can install from NPM like this:
-  * `npm i -g aws-cdk`
-
-## Building the app: 
-
-Go into the project folder and run `sam build`. This will install the Python modules such as `requests`. I recommend using the `--use-container` command-line switch. This will require that you have Docker installed and running.
+- Deploy the application from the [Serverless Application Repository]([https://console.aws.amazon.com/serverlessrepo/)
+- Enter your 'BunqApiToken' and 'YnabAccessToken'. Click Deploy and wait for the deployment to finish.
+- Go to the [AWS Lambda console](https://console.aws.amazon.com/lambda/), and open the function.
+- Click *"Select a test event"* , and configure a test event. You can use the standard `Hello World` example. Give it a name and click *"Create"*.
+- Run the Lambda by clicking *"test"*.
+- Scroll down in your *"log output"*, until you see your accounts and budgets in the log like this:
 
 ```
-cd projectfolder/sam-app
-sam build --use-container
+2020-05-04 14:29:21,448 | INFO | bunq | UserPerson "Your Name" (123456) | (bunq.py:166)
+2020-05-04 14:29:21,834 | INFO | bunq |   Betaalrekening                  1,234.56 EUR  (78901234) | (bunq.py:156)
+<redacted>
+2020-05-04 14:29:22,353 | INFO | ynab | Accounts for budget "ThisIsYourBudgetName": | (ynab.py:100)
+2020-05-04 14:29:22,824 | INFO | ynab |     1,234.56  BetaalBunq               (checking) | (ynab.py:94)
+2020-05-04 14:29:22,833 | INFO | ynab |            0  SavingsBunq               (savings) | (ynab.py:94)
 ```
 
-## Deploying the app: 
+The configuration for this tool is stored in SSM Parameter Store. You will need to extract the following items from the output above for all accounts you would like to Sync!
 
+- `bunq_user`: The number (123456) in the example above is your 'bunq_user' ID. Make a note of this.
+- `bunq_acc`: Also make note of the accounts you'd like to sync (78901234) in the example above.
+- `ynab_budget`: Make a note of your budget (ThisIsYourBudgetName) in the example above.
+- `ynab_acc`: Finally find the account 'ynab_acc' (BetaalBunq) from the example above.
+
+## Storing the configuration
+
+You now have all the information you need to complete the configuration file.
+
+- Go to the [AWS Systems Manager Parameter Store Console](https://console.aws.amazon.com/systems-manager/parameters)
+- Open the **'bunq2ynab' parameter** and click **edit**
+- Now add an entry for every account you'd like to sync (use the values you gathered above), like so:
+
+```js
+    {
+      "bunq_acc": "78901234",
+      "bunq_user": "123456",
+      "ynab_acc": "BetaalBunq,
+      "ynab_budget": "ThisIsYourBudgetName"
+    },
+    {
+      "bunq_acc": "Example",
+      "bunq_user": "Example",
+      "ynab_acc": "Example,
+      "ynab_budget": "Example"
+    }
 ```
-cdk bootstrap
-cdk deploy
-```
+## Final test
 
-This will create a `AWSLambdaBasicExecutionRole`, the Lambda itself, SSM Parameter (to store config) and a CloudWatch Events rule that runs the Lambda on a 15 min interval to sync from Bunq to Ynab. The `AWSLambdaBasicExecutionRole` will be granted `ssm:GetParameter` and `ssm:PutParameter` permissions to the created SSM Parameter to store and fetch the configuration. 
+- Go to the [AWS Lambda console](https://console.aws.amazon.com/lambda/), and open the function.
+- Go to *"Environment variables"* and click edit.
+- Disable *'LIST_MODE'* by setting the value to `0`.
+- Save, and test your Lambda.
+- Done! The Lambda will automatically sync every 5 minutes.
 
+## Projected cost
 
-## Getting started
-
-To get started you need a config with atleast the bunq `api_token` and the YNAB `accesstoken` populated. The other bunq and YNAB parameters will get populated on first run.
-
-* You can get the BUNQ in the BUNQ mobile app. Click your picture, then Security, API keys, then add a key using the plus on the top right. Choose to "Reveal" the API key and share it. **Don't share this API key with anyone!**
-* You can get the YNAB access token [here](https://app.youneedabudget.com/settings/developer).  
-
-The bunq2ynab section will hold the sync pairs. e.g. which bunq account to which YNAB account. If you don't know what they are you can run the Lambda in `LIST_MODE` by setting the environment variable to `1` **OR** run `applocal.py` with the `-l` commandline switch.
-
-Here is an example config file: 
-
-```
-{
-	"bunq": {
-		"api_token": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
-		"priv_key": "",
-		"install_token": "",
-		"server_pub_key": "",
-		"session_token": ""
-	},
-	"bunq2ynab": [{
-			"bunq_user": "",
-			"bunq_acc": "",
-			"ynab_budget": "",
-			"ynab_acc": ""
-		},
-		{
-			"bunq_user": "",
-			"bunq_acc": "",
-			"ynab_budget": "",
-			"ynab_acc": ""
-		}
-	],
-	"ynab": {
-		"accesstoken": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
-		"clientid": "",
-		"clientsecret": ""
-	}
-}
-```
+All of the above should fall into the free-tier usage.

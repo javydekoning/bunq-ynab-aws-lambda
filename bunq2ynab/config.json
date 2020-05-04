@@ -1,0 +1,27 @@
+{
+  "bunq": {
+    "api_token": "",
+    "priv_key": "",
+    "install_token": "",
+    "session_token": ""
+  },
+  "bunq2ynab": [
+    {
+      "bunq_user": "",
+      "bunq_acc": "",
+      "ynab_budget": "",
+      "ynab_acc": ""
+    },
+    {
+      "bunq_user": "",
+      "bunq_acc": "",
+      "ynab_budget": "",
+      "ynab_acc": ""
+    }
+  ],
+  "ynab": {
+    "accesstoken": "",
+    "clientid": "",
+    "clientsecret": ""
+  }
+}

@@ -38,7 +38,6 @@ def lambda_handler(event, context):
             LOGGER.info('Detected authorization error, resetting config')
             config.value['bunq']['install_token'] = ''
             config.value['bunq']['priv_key'] = ''
-            config.value['bunq']['server_pub_key'] = ''
             config.value['bunq']['session_token'] = ''
             config.save(config.value)
 
