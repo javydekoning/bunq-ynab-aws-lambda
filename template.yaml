@@ -20,7 +20,7 @@ Metadata:
     LicenseUrl: LICENSE
     Labels: ['Bunq', 'Ynab']
     HomePageUrl: https://github.com/javydekoning/bunq-ynab-aws-lambda
-    SemanticVersion: 0.0.2
+    SemanticVersion: 0.1.0
     SourceCodeUrl: https://github.com/javydekoning/bunq-ynab-aws-lambda
 
 Parameters:
